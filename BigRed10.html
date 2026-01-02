@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Big Red Score Tracker</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="data:application/manifest+json,{
+        'name': 'Big Mike's Big Red Tabulator',
+        'short_name': 'BigRed',
+        'start_url': '.',
+        'display': 'standalone',
+        'background_color': '#ff0000',
+        'theme_color': '#ff0000',
+        'icons': [{'src': 'https://via.placeholder.com/192x192.png?text=🃏', 'sizes': '192x192', 'type': 'image/png'}]
+    }">
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: #f9f9f9; color: #333; max-width: 600px; margin: auto; line-height: 1.5; transition: background 0.3s, color 0.3s; position: relative; min-height: 100vh; padding-bottom: 60px; }
+        body.dark-mode { background: #121212; color: #e0e0e0; }
+        h1 { text-align: center; color: #d00; margin: 10px 0 15px; font-size: 24px; font-weight: bold; }
+        body.dark-mode h1 { color: #ff4d4d; }
+        h2 { color: #333; font-size: 20px; margin: 20px 0 10px; }
+        body.dark-mode h2 { color: #ddd; }
+        h3 { color: #333; }
+        body.dark-mode h3 { color: #ddd; }
+        input, select { padding: 14px; margin: 12px 0; width: 100%; font-size: 18px; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; background: white; color: #333; }
+        body.dark-mode input, body.dark-mode select { background: #2a2a2a; color: #e0e0e0; border-color: #444; }
+        button { padding: 14px; margin: 12px 0; width: 100%; font-size: 18px; box-sizing: border-box; border-radius: 8px; border: none; font-weight: bold; min-height: 56px; color: white; cursor: pointer; transition: background 0.3s; }
+        button:disabled { background: #ccc; }
+        button.add { background: #0066cc; }
+        button.calc { background: #ff6b00; font-size: 20px; padding: 16px; }
+        button.remove { background: #cc0000; }
+        button.share { background: #00cc66; }
+        button.reset { background: #666; }
+        body.dark-mode button:disabled { background: #555; }
+        .player-list { display: flex; flex-wrap: wrap; gap: 15px; margin: 15px 0; }
+        .player-checkbox { flex: 1 1 45%; display: flex; align-items: center; font-size: 19px; }
+        .player-checkbox input { width: auto; margin-right: 12px; height: 24px; accent-color: #d00; }
+        body.dark-mode .player-checkbox { color: #e0e0e0; }
+        .results { margin-top: 30px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: background 0.3s; }
+        body.dark-mode .results { background: #1e1e1e; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .net-debts p { margin: 16px 0; font-size: 19px; }
+        .net-debts p strong { color: #d00; }
+        body.dark-mode .net-debts p strong { color: #ff4d4d; }
+        .overall ul { margin: 15px 0 0 0; padding-left: 25px; }
+        .overall li { margin: 12px 0; font-size: 19px; }
+        .positive { color: #0a0; font-weight: bold; }
+        body.dark-mode .positive { color: #4caf50; }
+        .negative { color: #d00; font-weight: bold; }
+        body.dark-mode .negative { color: #ff4d4d; }
+        .zero { color: #666; }
+        body.dark-mode .zero { color: #aaa; }
+
+        /* Subtle Dark Mode Toggle - Bottom Right */
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.85);
+            padding: 8px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            transition: background 0.3s;
+        }
+        body.dark-mode .dark-mode-toggle {
+            background: rgba(30,30,30,0.9);
+            color: #fff;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 22px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #aaa;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input:checked + .toggle-slider {
+            background-color: #d00;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        body.dark-mode .toggle-slider {
+            background-color: #555;
+        }
+        body.dark-mode input:checked + .toggle-slider {
+            background-color: #ff4d4d;
+        }
+
+        /* Popup styles */
+        #calcSection > div, #addPlayerSection > div, #removePlayerSection > div { background: white; transition: background 0.3s; }
+        body.dark-mode #calcSection > div, body.dark-mode #addPlayerSection > div, body.dark-mode #removePlayerSection > div { background: #1e1e1e; }
+    </style>
+</head>
+<body>
+    <h1>🃏 Big Mike's Big Red Tabulator</h1>
+
+    <!-- Subtle Dark Mode Toggle - Bottom Right -->
+    <label class="dark-mode-toggle" onclick="toggleDarkMode()">
+        <span>Bright</span>
+        <div class="toggle-switch">
+            <input type="checkbox" id="darkModeSwitch">
+            <span class="toggle-slider"></span>
+        </div>
+        <span>Dark</span>
+    </label>
+    
+    <div id="setup">
+        <label>How many players? (2–10)
+            <select id="numPlayers">
+                <script>
+                    for(let i=2; i<=10; i++) document.write(`<option${i===4?' selected':''}>${i}</option>`);
+                </script>
+            </select>
+        </label>
+        <button onclick="startNameEntry()">Next</button>
+    </div>
+
+    <div id="names" style="display:none;">
+        <h2>Enter Player Names</h2>
+        <div id="nameInputs"></div>
+        <button onclick="startGame()">Start Game</button>
+    </div>
+
+    <div id="game" style="display:none;">
+        <h2>Enter Data</h2>
+
+        <button class="calc" onclick="showCalculator()">🧮 Calculate Round Amount</button>
+
+        <label>Winner:
+            <select id="winner"></select>
+        </label>
+        
+        <label>Select Losers:</label>
+        <div class="player-list" id="losers"></div>
+        
+        <label>Amount each loser owes the winner:
+            <input type="number" step="0.01" min="0" id="amount" placeholder="e.g. 10.00">
+        </label>
+        
+        <button onclick="submitRound()">Submit Round</button>
+
+        <button class="add" onclick="showAddPlayer()">Add Player</button>
+        <button class="remove" onclick="showRemovePlayer()">Remove Player</button>
+
+        <div class="results">
+            <h3>Current Net Debts</h3>
+            <div class="net-debts" id="netDebtList">
+                <p style="text-align:center; color:#888;">Play some rounds to see results!</p>
+            </div>
+
+            <h3 style="margin-top:30px;">Overall Settlement</h3>
+            <div class="overall" id="overallList"></div>
+            <button class="share" onclick="shareResults()">Share Results</button>
+        </div>
+
+        <button class="reset" onclick="resetGame()">Reset Entire Game</button>
+    </div>
+
+    <!-- Calculator Popup -->
+    <div id="calcSection" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:100;">
+        <div style="margin:80px 20px; padding:30px; border-radius:16px; max-width:500px;">
+            <h2 style="text-align:center;">🧮 Round Calculator</h2>
+            <p style="font-size:18px; text-align:center; margin:20px 0;">How much is this round worth?</p>
+
+            <label>How many players are in this round?
+                <input type="number" min="1" id="calcPlayers" placeholder="e.g. 8">
+            </label>
+
+            <label>How many quarters in front of each player?
+                <input type="number" min="0" id="calcQuarters" placeholder="e.g. 4">
+            </label>
+
+            <div style="display:flex; gap:15px; margin-top:30px;">
+                <button onclick="applyCalculation()" style="background:#0066cc; flex:1;">Apply Amount</button>
+                <button onclick="hideCalculator()" style="background:#999; flex:1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Player Popup -->
+    <div id="addPlayerSection" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6);">
+        <div style="margin:100px 20px; padding:30px; border-radius:16px;">
+            <h2>Add New Player</h2>
+            <input type="text" id="newPlayerName" placeholder="Enter name">
+            <button onclick="addNewPlayer()" style="background:#0066cc;">Add Player</button>
+            <button onclick="hideAddPlayer()" style="background:#999; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Remove Player Popup -->
+    <div id="removePlayerSection" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6);">
+        <div style="margin:100px 20px; padding:30px; border-radius:16px;">
+            <h2>Remove Player</h2>
+            <select id="removePlayerName">
+                <!-- Populated dynamically -->
+            </select>
+            <button onclick="removePlayer()" style="background:#cc0000;">Remove Player</button>
+            <button onclick="hideRemovePlayer()" style="background:#999; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let players = []; // Active players
+        let debts = {};
+
+        function startNameEntry() {
+            const num = parseInt(document.getElementById('numPlayers').value);
+            const container = document.getElementById('nameInputs');
+            container.innerHTML = '';
+            for(let i=0; i<num; i++) {
+                container.innerHTML += `<input type="text" placeholder="Player ${i+1} name" id="name${i}">`;
+            }
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('names').style.display = 'block';
+        }
+
+        function startGame() {
+            const num = document.querySelectorAll('#nameInputs input').length;
+            players = [];
+            for(let i=0; i<num; i++) {
+                const name = document.getElementById(`name${i}`).value.trim();
+                if(!name) return alert('Please enter all player names!');
+                if(players.includes(name)) return alert('Duplicate names not allowed!');
+                players.push(name);
+            }
+            initializeDebts();
+            document.getElementById('names').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            loadGameScreen();
+            saveData();
+        }
+
+        function initializeDebts() {
+            debts = {};
+            players.forEach(p => {
+                debts[p] = {};
+                players.forEach(o => { if (o !== p) debts[p][o] = 0; });
+            });
+        }
+
+        function loadGameScreen() {
+            const winnerSel = document.getElementById('winner');
+            winnerSel.innerHTML = '<option value="">Pick winner</option>';
+            players.forEach(p => winnerSel.innerHTML += `<option value="${p}">${p}</option>`);
+
+            const losersDiv = document.getElementById('losers');
+            losersDiv.innerHTML = '';
+            players.forEach(p => {
+                losersDiv.innerHTML += `
+                    <label class="player-checkbox">
+                        <input type="checkbox" value="${p}"> ${p}
+                    </label>`;
+            });
+
+            winnerSel.onchange = () => {
+                const winner = winnerSel.value;
+                document.querySelectorAll('#losers input').forEach(cb => {
+                    cb.disabled = (cb.value === winner);
+                    if (cb.value === winner) cb.checked = false;
+                });
+            };
+
+            updateResults();
+        }
+
+        function submitRound() {
+            const winner = document.getElementById('winner').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const losers = Array.from(document.querySelectorAll('#losers input:checked'))
+                            .map(cb => cb.value)
+                            .filter(l => l !== winner);
+
+            if (!winner) return alert('Select a winner!');
+            if (losers.length === 0) return alert('Select at least one loser!');
+            if (isNaN(amount) || amount <= 0) return alert('Enter a valid amount greater than 0!');
+
+            losers.forEach(loser => {
+                debts[loser][winner] += amount;
+            });
+
+            document.getElementById('winner').value = '';
+            document.getElementById('amount').value = '';
+            document.querySelectorAll('#losers input').forEach(cb => {
+                cb.checked = false;
+                cb.disabled = false;
+            });
+
+            updateResults();
+            saveData();
+        }
+
+        // Calculator Functions
+        function showCalculator() {
+            document.getElementById('calcPlayers').value = players.length;
+            document.getElementById('calcQuarters').value = '';
+            document.getElementById('calcSection').style.display = 'block';
+        }
+
+        function hideCalculator() {
+            document.getElementById('calcSection').style.display = 'none';
+        }
+
+        function applyCalculation() {
+            const numPlayers = parseInt(document.getElementById('calcPlayers').value);
+            const quarters = parseInt(document.getElementById('calcQuarters').value);
+
+            if (isNaN(numPlayers) || numPlayers < 1) return alert('Enter a valid number of players!');
+            if (isNaN(quarters) || quarters < 0) return alert('Enter a valid number of quarters!');
+
+            const totalAmount = numPlayers * quarters * 0.25;
+            document.getElementById('amount').value = totalAmount.toFixed(2);
+
+            hideCalculator();
+            alert(`Round amount calculated: $${totalAmount.toFixed(2)} (filled in below)`);
+        }
+
+        // Add Player Functions
+        function showAddPlayer() {
+            document.getElementById('newPlayerName').value = '';
+            document.getElementById('addPlayerSection').style.display = 'block';
+        }
+
+        function hideAddPlayer() {
+            document.getElementById('addPlayerSection').style.display = 'none';
+        }
+
+        function addNewPlayer() {
+            const name = document.getElementById('newPlayerName').value.trim();
+            if (!name) return alert('Enter a name for the new player!');
+            if (players.includes(name)) return alert('That name is already in the game!');
+
+            players.push(name);
+            if (!debts[name]) debts[name] = {};
+            Object.keys(debts).forEach(p => {
+                if (p !== name) {
+                    debts[name][p] = 0;
+                    debts[p][name] = 0;
+                }
+            });
+
+            hideAddPlayer();
+            loadGameScreen();
+            saveData();
+            alert(`${name} has joined the game!`);
+        }
+
+        // Remove Player Functions
+        function showRemovePlayer() {
+            const sel = document.getElementById('removePlayerName');
+            sel.innerHTML = '';
+            players.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
+            document.getElementById('removePlayerSection').style.display = 'block';
+        }
+
+        function hideRemovePlayer() {
+            document.getElementById('removePlayerSection').style.display = 'none';
+        }
+
+        function removePlayer() {
+            const name = document.getElementById('removePlayerName').value;
+            if (!name) return alert('Select a player to remove!');
+            if (!confirm(`Remove ${name}? Their debts will still show in results.`)) return;
+
+            const index = players.indexOf(name);
+            if (index > -1) players.splice(index, 1);
+
+            hideRemovePlayer();
+            loadGameScreen();
+            saveData();
+            alert(`${name} has been removed from active play.`);
+        }
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            const isDark = document.body.classList.toggle('dark-mode');
+            document.getElementById('darkModeSwitch').checked = isDark;
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Share Results
+        function shareResults() {
+            let shareText = "Big Mike's Big Red Tabulator - Settlement:\n\nCurrent Net Debts:\n";
+            const netDebtDiv = document.getElementById('netDebtList');
+            if (netDebtDiv.innerText.includes('All debts are settled')) {
+                shareText += "All debts are settled! 🎉\n";
+            } else {
+                Array.from(netDebtDiv.querySelectorAll('p')).forEach(p => {
+                    shareText += p.innerText + "\n";
+                });
+            }
+            shareText += "\nOverall Settlement:\n";
+            Array.from(document.getElementById('overallList').querySelectorAll('li')).forEach(li => {
+                shareText += li.innerText + "\n";
+            });
+
+            if (navigator.share) {
+                navigator.share({ text: shareText }).catch(err => console.error('Share failed:', err));
+            } else {
+                copyToClipboard(shareText);
+                alert('Results copied to clipboard! Paste to share.');
+            }
+        }
+
+        function copyToClipboard(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = 0;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+
+        function updateResults() {
+            const netDebtDiv = document.getElementById('netDebtList');
+            const overallDiv = document.getElementById('overallList');
+
+            const allParticipants = [...new Set(Object.keys(debts))].sort((a,b) => a.localeCompare(b));
+
+            let netLines = [];
+            for (let i = 0; i < allParticipants.length; i++) {
+                for (let j = i + 1; j < allParticipants.length; j++) {
+                    const p1 = allParticipants[i];
+                    const p2 = allParticipants[j];
+                    const owesP1toP2 = (debts[p1] && debts[p1][p2]) || 0;
+                    const owesP2toP1 = (debts[p2] && debts[p2][p1]) || 0;
+                    const net = owesP1toP2 - owesP2toP1;
+
+                    if (Math.abs(net) > 0.005) {
+                        if (net > 0) {
+                            netLines.push(`<strong>${p1}</strong> owes <strong>${p2}</strong> $${net.toFixed(2)}`);
+                        } else {
+                            netLines.push(`<strong>${p2}</strong> owes <strong>${p1}</strong> $${(-net).toFixed(2)}`);
+                        }
+                    }
+                }
+            }
+
+            if (netLines.length === 0) {
+                netDebtDiv.innerHTML = `<p style="text-align:center; font-size:20px; color:#090;">All debts are settled! 🎉</p>`;
+            } else {
+                netDebtDiv.innerHTML = netLines.map(line => `<p>${line}</p>`).join('');
+            }
+
+            let balances = {};
+            allParticipants.forEach(p => balances[p] = 0);
+            allParticipants.forEach(payer => {
+                Object.entries(debts[payer] || {}).forEach(([payee, amt]) => {
+                    if (amt > 0.005) {
+                        balances[payer] -= amt;
+                        balances[payee] += amt;
+                    }
+                });
+            });
+
+            const sortedBalances = Object.entries(balances)
+                .map(([name, bal]) => ({name, bal: Math.round(bal * 100)/100}))
+                .sort((a,b) => b.bal - a.bal);
+
+            let overallHtml = '<ul>';
+            sortedBalances.forEach(({name, bal}) => {
+                let text, cls;
+                if (bal > 0.005) {
+                    text = `${name} is owed $${bal.toFixed(2)} overall`;
+                    cls = 'positive';
+                } else if (bal < -0.005) {
+                    text = `${name} owes $${(-bal).toFixed(2)} overall`;
+                    cls = 'negative';
+                } else {
+                    text = `${name} is even`;
+                    cls = 'zero';
+                }
+                overallHtml += `<li class="${cls}">${text}</li>`;
+            });
+            overallHtml += '</ul>';
+            overallDiv.innerHTML = overallHtml;
+        }
+
+        function resetGame() {
+            if (confirm('Reset the entire game? All rounds and debts will be cleared.')) {
+                localStorage.removeItem('bigredData');
+                localStorage.removeItem('darkMode');
+                location.reload();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('bigredData', JSON.stringify({players, debts}));
+        }
+
+        window.onload = () => {
+            const saved = localStorage.getItem('bigredData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                players = data.players || [];
+                debts = data.debts || {};
+                if (players.length > 0) {
+                    document.getElementById('setup').style.display = 'none';
+                    document.getElementById('game').style.display = 'block';
+                    loadGameScreen();
+                }
+            }
+            const isDark = localStorage.getItem('darkMode') === 'true';
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+            }
+            document.getElementById('darkModeSwitch').checked = isDark;
+        };
+    </script>
+</body>
+</html>
