@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Mood Monster Check-In</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #FFD700; /* Bright yellow */
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #FF4500; /* Orange red */
+            text-align: center;
+            font-size: 2.5em;
+        }
+        #mood-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            max-width: 1024px; /* iPad width */
+            width: 100%;
+        }
+        .mood-card {
+            background-color: #87CEEB; /* Sky blue */
+            border: 3px solid #32CD32; /* Lime green */
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .mood-card:hover {
+            transform: scale(1.1);
+        }
+        .mood-card img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+        }
+        .mood-card p {
+            font-size: 1.2em;
+            color: #FF1493; /* Deep pink */
+        }
+        #activity-section {
+            display: none;
+            max-width: 800px;
+            margin-top: 30px;
+            background-color: #98FB98; /* Pale green */
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        #activity-section h2 {
+            color: #4B0082; /* Indigo */
+        }
+        #activity-section ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #activity-section li {
+            background-color: #FFFFE0; /* Light yellow */
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+        #history-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #FF69B4; /* Hot pink */
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+        #history-section {
+            display: none;
+            max-width: 800px;
+            margin-top: 30px;
+        }
+        canvas {
+            background-color: white;
+            border-radius: 10px;
+        }
+        @media (max-width: 1024px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .mood-card img {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Daily Mood Monster Check-In!</h1>
+    <p>Pick the monster that matches how you feel today!</p>
+    <div id="mood-selection">
+        <div class="mood-card" data-mood="Happy">
+            <img src="https://www.shutterstock.com/image-vector/colorful-group-cute-cartoon-monsters-260nw-2701840537.jpg" alt="Happy Monster">
+            <p>Happy!</p>
+        </div>
+        <div class="mood-card" data-mood="Sad">
+            <img src="https://thumbs.dreamstime.com/b/cartoon-monster-ghost-angry-scary-monsters-mascot-characters-cute-goofy-alien-smile-creature-happy-gremlin-troll-devil-282714077.jpg" alt="Sad Monster">
+            <p>Sad</p>
+        </div>
+        <div class="mood-card" data-mood="Angry">
+            <img src="https://ecdn.teacherspayteachers.com/thumbitem/THE-COLOUR-MONSTER-KABOOM-8713590-1707573627/original-8713590-1.jpg" alt="Angry Monster">
+            <p>Angry</p>
+        </div>
+        <div class="mood-card" data-mood="Scared">
+            <img src="https://thumbs.dreamstime.com/b/funny-cartoon-red-jelly-monster-funny-cartoon-red-jelly-monster-different-emotions-vector-icons-isolated-white-background-102070583.jpg" alt="Scared Monster">
+            <p>Scared</p>
+        </div>
+        <div class="mood-card" data-mood="Excited">
+            <img src="https://thumbs.dreamstime.com/b/five-colorful-joyful-monsters-expressing-excitement-vector-design-generative-ai-vibrant-illustration-depicting-friendly-various-416645451.jpg" alt="Excited Monster">
+            <p>Excited</p>
+        </div>
+        <div class="mood-card" data-mood="Tired">
+            <img src="https://thumbs.dreamstime.com/b/cute-colorful-cartoon-monster-number-characters-image-displays-vibrant-set-numerical-zero-to-nine-each-uniquely-418193752.jpg" alt="Tired Monster">
+            <p>Tired</p>
+        </div>
+    </div>
+    <div id="activity-section">
+        <h2>Try These Fun Calm-Down Tricks!</h2>
+        <ul id="activities"></ul>
+        <button id="back-button">Back to Moods</button>
+    </div>
+    <button id="history-button">See My Mood History!</button>
+    <div id="history-section">
+        <h2>Your Mood Chart</h2>
+        <canvas id="moodChart" width="400" height="200"></canvas>
+        <button id="back-to-main">Back</button>
+    </div>
+
+    <script>
+        const moods = ['Happy', 'Sad', 'Angry', 'Scared', 'Excited', 'Tired'];
+        const activities = {
+            Happy: [
+                'Do a happy dance! Jump and spin for 1 minute (physical activity boosts endorphins).',
+                'Draw a picture of something fun (art helps express positive feelings).',
+                'Share a joke with a friend (laughter is science-backed for happiness).'
+            ],
+            Sad: [
+                'Take deep breaths: In for 4, hold for 4, out for 4 (deep breathing calms the nervous system).',
+                'Hug a stuffed animal (physical comfort releases oxytocin).',
+                'Think of 3 things you\'re grateful for (gratitude journaling improves mood, per studies).'
+            ],
+            Angry: [
+                'Count to 10 slowly (counting activates rational brain parts).',
+                'Squeeze a stress ball or pillow (progressive muscle relaxation reduces tension).',
+                'Draw your angry feelings (art therapy helps process emotions).'
+            ],
+            Scared: [
+                'Name 5 things you can see around you (grounding technique from mindfulness).',
+                'Breathe like a balloon: Belly in and out (diaphragmatic breathing lowers anxiety).',
+                'Say: "I am safe and brave" (positive affirmations rewire thought patterns).'
+            ],
+            Excited: [
+                'Do jumping jacks for 30 seconds (channels energy positively).',
+                'Share your excitement with someone (social connection enhances joy).',
+                'Plan a fun activity (anticipation builds positive emotions).'
+            ],
+            Tired: [
+                'Stretch your arms and legs (gentle movement increases blood flow).',
+                'Close your eyes and imagine a calm place (visualization relaxes the mind).',
+                'Drink some water and take a short walk (hydration and movement fight fatigue).'
+            ]
+        };
+
+        const moodCards = document.querySelectorAll('.mood-card');
+        const activitySection = document.getElementById('activity-section');
+        const activitiesList = document.getElementById('activities');
+        const backButton = document.getElementById('back-button');
+        const historyButton = document.getElementById('history-button');
+        const historySection = document.getElementById('history-section');
+        const backToMain = document.getElementById('back-to-main');
+        const moodSelection = document.getElementById('mood-selection');
+
+        moodCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const mood = card.dataset.mood;
+                saveMood(mood);
+                showActivities(mood);
+            });
+        });
+
+        backButton.addEventListener('click', () => {
+            activitySection.style.display = 'none';
+            moodSelection.style.display = 'grid';
+            historyButton.style.display = 'block';
+        });
+
+        historyButton.addEventListener('click', showHistory);
+
+        backToMain.addEventListener('click', () => {
+            historySection.style.display = 'none';
+            moodSelection.style.display = 'grid';
+            historyButton.style.display = 'block';
+        });
+
+        function saveMood(mood) {
+            let moodData = JSON.parse(localStorage.getItem('moodData')) || {};
+            const date = new Date().toDateString();
+            moodData[date] = mood;
+            localStorage.setItem('moodData', JSON.stringify(moodData));
+        }
+
+        function showActivities(mood) {
+            activitiesList.innerHTML = '';
+            activities[mood].forEach(activity => {
+                const li = document.createElement('li');
+                li.textContent = activity;
+                activitiesList.appendChild(li);
+            });
+            moodSelection.style.display = 'none';
+            historyButton.style.display = 'none';
+            activitySection.style.display = 'block';
+        }
+
+        function showHistory() {
+            moodSelection.style.display = 'none';
+            historyButton.style.display = 'none';
+            historySection.style.display = 'block';
+
+            const moodData = JSON.parse(localStorage.getItem('moodData')) || {};
+            const moodCounts = moods.reduce((acc, mood) => ({ ...acc, [mood]: 0 }), {});
+
+            Object.values(moodData).forEach(mood => {
+                if (mood in moodCounts) moodCounts[mood]++;
+            });
+
+            const ctx = document.getElementById('moodChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: moods,
+                    datasets: [{
+                        label: 'Mood Counts',
+                        data: moods.map(mood => moodCounts[mood]),
+                        backgroundColor: ['#FFD700', '#1E90FF', '#FF4500', '#9932CC', '#FF1493', '#808080']
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
