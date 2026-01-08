@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mood Monster Check-In!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Bubblegum+Sans&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Bubblegum Sans', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #98FB98);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        h1 {
+            font-family: 'Comic Neue', sans-serif;
+            color: #FF4500;
+            text-align: center;
+            font-size: 3em;
+            text-shadow: 3px 3px #FFD700;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.5em;
+            text-align: center;
+            color: #4B0082;
+            margin-bottom: 20px;
+        }
+        #mood-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1024px;
+        }
+        .mood-card {
+            background-color: #FFFFE0;
+            border: 5px solid #FF69B4;
+            border-radius: 30px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+        }
+        .mood-card:hover {
+            transform: scale(1.1) rotate(3deg);
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.3);
+        }
+        .mood-card img {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 20px;
+            border: 4px solid #32CD32;
+        }
+        .mood-card p {
+            font-size: 1.8em;
+            color: #FF1493;
+            margin: 15px 0 0;
+            text-shadow: 2px 2px #FFD700;
+        }
+        #activity-section {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            margin-top: 40px;
+            background-color: #98FB98;
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+            border: 5px solid #FFD700;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.2);
+        }
+        #activity-section h2 {
+            font-size: 2.5em;
+            color: #4B0082;
+            text-shadow: 2px 2px #FF69B4;
+        }
+        #activity-section ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #activity-section li {
+            background-color: #87CEEB;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 20px;
+            font-size: 1.6em;
+            border: 3px solid #FF4500;
+        }
+        button {
+            margin: 20px 10px;
+            padding: 15px 30px;
+            background-color: #FF69B4;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-family: 'Comic Neue', sans-serif;
+            font-size: 1.8em;
+            cursor: pointer;
+            box-shadow: 5px 5px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.1);
+        }
+        #history-section {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            margin-top: 40px;
+            background-color: #FFFFE0;
+            padding: 30px;
+            border-radius: 30px;
+            border: 5px solid #32CD32;
+            text-align: center;
+        }
+        #chart-container {
+            position: relative;
+            height: 400px; /* Fixed height */
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        canvas {
+            background-color: white;
+            border-radius: 20px;
+            border: 4px solid #FF1493;
+        }
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5em; }
+            p { font-size: 1.3em; }
+            #mood-selection { gap: 15px; padding: 0 10px; }
+            .mood-card { padding: 15px; }
+            .mood-card p { font-size: 1.5em; }
+            .mood-card img { max-height: 150px; }
+            #activity-section { padding: 20px; margin-top: 20px; }
+            #activity-section h2 { font-size: 2em; }
+            #activity-section li { font-size: 1.4em; padding: 15px; margin: 15px 0; }
+            button { font-size: 1.5em; padding: 12px 25px; }
+            #chart-container { height: 300px; }
+        }
+        @media (max-width: 480px) {
+            h1 { font-size: 2.2em; }
+            p { font-size: 1.2em; }
+            .mood-card p { font-size: 1.4em; }
+            #mood-selection { grid-template-columns: repeat(2, 1fr); }
+            button { font-size: 1.4em; }
+            #chart-container { height: 250px; }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Mood Monster Check-In!</h1>
+    <p>Tap the monster that shows how you feel today!</p>
+    <div id="mood-selection">
+        <div class="mood-card" data-mood="Happy">
+            <img src="https://thumbs.dreamstime.com/b/goofy-monster-three-eyed-character-big-smile-vector-design-generative-ai-quirky-cartoon-illustration-featuring-eyes-418628467.jpg" alt="Happy Monster">
+            <p>Happy!</p>
+        </div>
+        <div class="mood-card" data-mood="Sad">
+            <img src="https://thumbs.dreamstime.com/b/furry-blue-orange-cartoon-monster-big-eyes-looking-sad-light-background-396240947.jpg" alt="Sad Monster">
+            <p>Sad</p>
+        </div>
+        <div class="mood-card" data-mood="Angry">
+            <img src="https://thumbs.dreamstime.com/b/cartoon-monster-ghost-angry-scary-monsters-mascot-characters-cute-goofy-alien-smile-creature-happy-gremlin-troll-devil-124711160.jpg" alt="Angry Monster">
+            <p>Angry</p>
+        </div>
+        <div class="mood-card" data-mood="Scared">
+            <img src="https://thumbs.dreamstime.com/b/screaming-green-slime-monster-big-eyes-sharp-teeth-dripping-yellow-goo-cartoon-creature-looks-scared-surprised-424252706.jpg" alt="Scared Monster">
+            <p>Scared</p>
+        </div>
+        <div class="mood-card" data-mood="Excited">
+            <img src="https://thumbs.dreamstime.com/b/goofy-green-monster-cute-cartoon-creature-friendly-character-art-vector-design-generative-ai-adorable-large-horns-416225849.jpg" alt="Excited Monster">
+            <p>Excited!</p>
+        </div>
+        <div class="mood-card" data-mood="Tired">
+            <img src="https://thumbs.dreamstime.com/b/cartoon-monster-mascot-halloween-funny-monsters-bizarre-goofy-gremlin-horn-silly-furry-alien-creations-cartoons-fluffy-124711136.jpg" alt="Tired Monster">
+            <p>Tired</p>
+        </div>
+    </div>
+
+    <div id="activity-section">
+        <h2>Try These Super Fun Tricks!</h2>
+        <ul id="activities"></ul>
+        <button id="back-button">Back to Monsters</button>
+    </div>
+
+    <button id="history-button">See My Weekly Report!</button>
+
+    <div id="history-section">
+        <h2>Your Weekly Moods</h2>
+        <div id="chart-container">
+            <canvas id="moodChart"></canvas>
+        </div>
+        <button id="back-to-main">Back</button>
+    </div>
+
+    <script>
+        const moods = ['Happy', 'Sad', 'Angry', 'Scared', 'Excited', 'Tired'];
+        const activities = {
+            Happy: [
+                'Do a happy dance! Jump and spin for 1 minute.',
+                'Draw a picture of something fun.',
+                'Share a joke with a friend.'
+            ],
+            Sad: [
+                'Take deep breaths: In for 4, hold for 4, out for 4.',
+                'Hug a stuffed animal.',
+                'Think of 3 things you\'re grateful for.'
+            ],
+            Angry: [
+                'Count to 10 slowly.',
+                'Squeeze a stress ball or pillow.',
+                'Draw your angry feelings.'
+            ],
+            Scared: [
+                'Name 5 things you can see around you.',
+                'Breathe like a balloon: Belly in and out.',
+                'Say: "I am safe and brave".'
+            ],
+            Excited: [
+                'Do jumping jacks for 30 seconds.',
+                'Share your excitement with someone.',
+                'Plan a fun activity.'
+            ],
+            Tired: [
+                'Stretch your arms and legs.',
+                'Close your eyes and imagine a calm place.',
+                'Drink some water and take a short walk.'
+            ]
+        };
+
+        const moodCards = document.querySelectorAll('.mood-card');
+        const activitySection = document.getElementById('activity-section');
+        const activitiesList = document.getElementById('activities');
+        const backButton = document.getElementById('back-button');
+        const historyButton = document.getElementById('history-button');
+        const historySection = document.getElementById('history-section');
+        const backToMain = document.getElementById('back-to-main');
+        const moodSelection = document.getElementById('mood-selection');
+
+        moodCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const mood = card.dataset.mood;
+                saveMood(mood);
+                showActivities(mood);
+            });
+        });
+
+        backButton.addEventListener('click', () => {
+            activitySection.style.display = 'none';
+            moodSelection.style.display = 'grid';
+            historyButton.style.display = 'block';
+        });
+
+        historyButton.addEventListener('click', showHistory);
+
+        backToMain.addEventListener('click', () => {
+            historySection.style.display = 'none';
+            moodSelection.style.display = 'grid';
+            historyButton.style.display = 'block';
+        });
+
+        function saveMood(mood) {
+            let moodData = JSON.parse(localStorage.getItem('moodData')) || {};
+            const date = new Date().toDateString();
+            moodData[date] = mood;
+            localStorage.setItem('moodData', JSON.stringify(moodData));
+        }
+
+        function showActivities(mood) {
+            activitiesList.innerHTML = '';
+            activities[mood].forEach(activity => {
+                const li = document.createElement('li');
+                li.textContent = activity;
+                activitiesList.appendChild(li);
+            });
+            moodSelection.style.display = 'none';
+            historyButton.style.display = 'none';
+            activitySection.style.display = 'block';
+        }
+
+        let myChart = null;
+        function showHistory() {
+            moodSelection.style.display = 'none';
+            historyButton.style.display = 'none';
+            historySection.style.display = 'block';
+
+            const moodData = JSON.parse(localStorage.getItem('moodData')) || {};
+            const now = new Date();
+            const sevenDaysAgo = new Date(now);
+            sevenDaysAgo.setDate(now.getDate() - 7);
+
+            const weeklyData = Object.entries(moodData).filter(([date]) => {
+                const entryDate = new Date(date);
+                return entryDate >= sevenDaysAgo && entryDate <= now;
+            });
+
+            const moodCounts = moods.reduce((acc, mood) => ({ ...acc, [mood]: 0 }), {});
+
+            weeklyData.forEach(([, mood]) => {
+                if (mood in moodCounts) moodCounts[mood]++;
+            });
+
+            const ctx = document.getElementById('moodChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: moods,
+                    datasets: [{
+                        label: 'Days This Week',
+                        data: moods.map(mood => moodCounts[mood]),
+                        backgroundColor: ['#FFD700', '#1E90FF', '#FF4500', '#9932CC', '#FF69B4', '#808080']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, /* This allows the fixed height container to control size */
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
