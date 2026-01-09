@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Weekly Monster Mood Check-In!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Bubblegum+Sans&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Bubblegum Sans', sans-serif;
+            background: linear-gradient(to bottom, #87CEEB, #98FB98); /* Bright sky to grass */
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        h1 {
+            font-family: 'Comic Neue', sans-serif;
+            color: #FF4500; /* Bright orange */
+            text-align: center;
+            font-size: 3em;
+            text-shadow: 3px 3px #FFD700; /* Yellow shadow */
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.5em;
+            text-align: center;
+            color: #4B0082; /* Indigo */
+            margin-bottom: 20px;
+        }
+        #mood-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1024px;
+        }
+        .mood-card {
+            background-color: #FFFFE0; /* Light yellow */
+            border: 5px solid #FF69B4; /* Hot pink */
+            border-radius: 30px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+        }
+        .mood-card:hover {
+            transform: scale(1.1) rotate(3deg);
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.3);
+        }
+        .mood-card img {
+            width: 100%;
+            height: auto;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 20px;
+            border: 4px solid #32CD32; /* Lime green */
+        }
+        .mood-card p {
+            font-size: 1.8em;
+            color: #FF1493; /* Deep pink */
+            margin: 15px 0 0;
+            text-shadow: 2px 2px #FFD700;
+        }
+        #activity-section {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            margin-top: 40px;
+            background-color: #98FB98; /* Pale green */
+            padding: 30px;
+            border-radius: 30px;
+            text-align: center;
+            border: 5px solid #FFD700; /* Gold */
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.2);
+        }
+        #activity-section h2 {
+            font-size: 2.5em;
+            color: #4B0082;
+            text-shadow: 2px 2px #FF69B4;
+        }
+        #activity-section ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #activity-section li {
+            background-color: #87CEEB; /* Sky blue */
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 20px;
+            font-size: 1.6em;
+            border: 3px solid #FF4500; /* Orange red */
+        }
+        button {
+            margin: 20px 10px;
+            padding: 15px 30px;
+            background-color: #FF69B4;
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-family: 'Comic Neue', sans-serif;
+            font-size: 1.8em;
+            cursor: pointer;
+            box-shadow: 5px 5px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.1);
+        }
+        #history-section {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            margin-top: 40px;
+            background-color: #FFFFE0;
+            padding: 30px;
+            border-radius: 30px;
+            border: 5px solid #32CD32;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 1.4em;
+        }
+        th, td {
+            border: 2px solid #FF1493;
+            padding: 10px;
+            text-align: center;
+            background-color: #FFFFFF;
+        }
+        th {
+            background-color: #FFD700;
+            color: #4B0082;
+        }
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5em; }
+            p { font-size: 1.3em; }
+            #mood-selection { gap: 15px; padding: 0 10px; }
+            .mood-card { padding: 15px; }
+            .mood-card p { font-size: 1.5em; }
+            .mood-card img { max-height: 150px; }
+            #activity-section { padding: 20px; margin-top: 20px; }
+            #activity-section h2 { font-size: 2em; }
+            #activity-section li { font-size: 1.4em; padding: 15px; margin: 15px 0; }
+            button { font-size: 1.5em; padding: 12px 25px; }
+            table { font-size: 1.2em; }
+        }
+        @media (max-width: 480px) {
+            h1 { font-size: 2.2em; }
+            p { font-size: 1.2em; }
+            .mood-card p { font-size: 1.4em; }
+            #mood-selection { grid-template-columns: repeat(2, 1fr); }
+            button { font-size: 1.4em; }
+            table { font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Weekly Monster Mood Check-In!</h1>
+    <p>Tap a monster to show how you feel!</p>
+    <div id="mood-selection">
+        <div class="mood-card" data-mood="Happy">
+            <img src="https://thumbs.dreamstime.com/b/goofy-monster-three-eyed-character-big-smile-vector-design-generative-ai-quirky-cartoon-illustration-featuring-eyes-418628467.jpg" alt="Happy Monster">
+            <p>Happy!</p>
+        </div>
+        <div class="mood-card" data-mood="Sad">
+            <img src="https://thumbs.dreamstime.com/b/furry-blue-orange-cartoon-monster-big-eyes-looking-sad-light-background-396240947.jpg" alt="Sad Monster">
+            <p>Sad</p>
+        </div>
+        <div class="mood-card" data-mood="Angry">
+            <img src="https://thumbs.dreamstime.com/b/three-angry-cartoon-monsters-yelling-screaming-colorful-fuzzy-wide-mouths-depicted-state-anger-shouting-398413351.jpg" alt="Angry Monster">
+            <p>Angry</p>
+        </div>
+        <div class="mood-card" data-mood="Scared">
+            <img src="https://thumbs.dreamstime.com/b/scared-blue-furry-monster-sits-floor-amid-toilet-paper-mess-bathroom-frightened-creature-wide-eyes-open-mouth-looks-424573925.jpg" alt="Scared Monster">
+            <p>Scared</p>
+        </div>
+        <div class="mood-card" data-mood="Excited">
+            <img src="https://thumbs.dreamstime.com/b/cute-cheerful-monster-character-big-smile-friendly-vector-design-generative-ai-charming-illustration-whimsical-419684113.jpg" alt="Excited Monster">
+            <p>Excited!</p>
+        </div>
+        <div class="mood-card" data-mood="Tired">
+            <img src="https://www.shutterstock.com/image-vector/monster-sleeping-having-nightmare-funny-260nw-2379085851.jpg" alt="Tired Monster">
+            <p>Tired</p>
+        </div>
+    </div>
+
+    <div id="activity-section">
+        <h2>Super Fun Ways to Feel Better!</h2>
+        <ul id="activities"></ul>
+        <button id="back-button">Back to Monsters</button>
+    </div>
+
+    <button id="history-button">See My Weekly Report!</button>
+
+    <div id="history-section">
+        <h2>Your Weekly Moods</h2>
+        <table id="mood-table">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Happy</th>
+                    <th>Sad</th>
+                    <th>Angry</th>
+                    <th>Scared</th>
+                    <th>Excited</th>
+                    <th>Tired</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button id="back-to-main">Back</button>
+    </div>
+
+    <script>
+        const moods = ['Happy', 'Sad', 'Angry', 'Scared', 'Excited', 'Tired'];
+        const activities = {
+            Happy: [
+                'Share your happiness with a friend - talking boosts good feelings! (APA research)',
+                'Do a fun dance to keep the joy going (physical activity releases endorphins)',
+                'Draw what makes you happy (art helps express positive emotions)'
+            ],
+            Sad: [
+                'Talk about your feelings with someone you trust (naming emotions helps process them)',
+                'Hug a stuffed animal or loved one (physical comfort releases oxytocin)',
+                'Think of three things you are grateful for (gratitude improves mood per studies)'
+            ],
+            Angry: [
+                'Take deep breaths: In for 4, out for 4 (calms the nervous system)',
+                'Count to 10 slowly (activates rational thinking)',
+                'Squeeze a soft toy then let go (releases tension)'
+            ],
+            Scared: [
+                'Breathe like a balloon: Belly in and out (reduces anxiety)',
+                'Say "I am brave and safe" (positive affirmations help)',
+                'Name 5 things you can see (grounding technique from mindfulness)'
+            ],
+            Excited: [
+                'Jump up and down for 30 seconds (channels energy positively)',
+                'Take slow deep breaths to stay calm (regulates emotions)',
+                'Share your excitement with family (social connection enhances joy)'
+            ],
+            Tired: [
+                'Stretch your arms and legs gently (increases blood flow)',
+                'Close eyes and think of a cozy place (visualization relaxes)',
+                'Drink water and take a short walk (hydration and movement fight fatigue)'
+            ]
+        };
+
+        const moodCards = document.querySelectorAll('.mood-card');
+        const activitySection = document.getElementById('activity-section');
+        const activitiesList = document.getElementById('activities');
+        const backButton = document.getElementById('back-button');
+        const historyButton = document.getElementById('history-button');
+        const historySection = document.getElementById('history-section');
+        const backToMain = document.getElementById('back-to-main');
+        const moodSelection = document.getElementById('mood-selection');
+        const moodTableBody = document.querySelector('#mood-table tbody');
+
+        moodCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const mood = card.dataset.mood;
+                saveMood(mood);
+                showActivities(mood);
+            });
+        });
+
+        backButton.addEventListener('click', () => {
+            activitySection.style.display = 'none';
+            moodSelection.style.display = 'grid';
+            historyButton.style.display = 'block';
+        });
+
+        historyButton.addEventListener('click', showHistory);
+
+        backToMain.addEventListener('click', () => {
+            historySection.style.display = 'none';
+            moodSelection.style.display = 'grid';
+            historyButton.style.display = 'block';
+        });
+
+        function saveMood(mood) {
+            let moodData = JSON.parse(localStorage.getItem('moodData')) || {};
+            const date = new Date().toDateString();
+            if (!moodData[date]) {
+                moodData[date] = [];
+            }
+            moodData[date].push(mood);
+            localStorage.setItem('moodData', JSON.stringify(moodData));
+        }
+
+        function showActivities(mood) {
+            activitiesList.innerHTML = '';
+            activities[mood].forEach(activity => {
+                const li = document.createElement('li');
+                li.textContent = activity;
+                activitiesList.appendChild(li);
+            });
+            moodSelection.style.display = 'none';
+            historyButton.style.display = 'none';
+            activitySection.style.display = 'block';
+        }
+
+        function showHistory() {
+            moodSelection.style.display = 'none';
+            historyButton.style.display = 'none';
+            historySection.style.display = 'block';
+            moodTableBody.innerHTML = '';
+
+            const moodData = JSON.parse(localStorage.getItem('moodData')) || {};
+            const now = new Date();
+            const dates = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(now.getDate() - i);
+                dates.push(date.toDateString());
+            }
+
+            dates.forEach(date => {
+                const row = document.createElement('tr');
+                const dateCell = document.createElement('td');
+                dateCell.textContent = date;
+                row.appendChild(dateCell);
+
+                const dayMoods = moodData[date] || [];
+                moods.forEach(mood => {
+                    const count = dayMoods.filter(m => m === mood).length;
+                    const cell = document.createElement('td');
+                    cell.textContent = count;
+                    row.appendChild(cell);
+                });
+
+                moodTableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
