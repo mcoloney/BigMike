@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Excel Schedule → .ics</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; text-align: center; }
+    h1 { color: #1a3c6d; }
+    input[type="file"], button { padding: 12px 24px; font-size: 16px; margin: 15px; }
+    button { background: #1a3c6d; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    button:disabled { background: #aaa; }
+    #status { margin: 20px 0; padding: 15px; background: #f0f0f0; border-radius: 8px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<h1>Your March Schedule (Excel) → .ics</h1>
+<p>Upload your personal MARFFLE Excel file (.xlsx):</p>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls" />
+<button id="convertBtn" disabled>Convert & Download .ics</button>
+
+<div id="status">Waiting for file...</div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const convertBtn = document.getElementById('convertBtn');
+const status = document.getElementById('status');
+
+let workbook = null;
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  status.textContent = 'Reading Excel...';
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = ev.target.result;
+      workbook = XLSX.read(data, { type: 'binary' });
+      convertBtn.disabled = false;
+      status.textContent = 'Excel loaded. Click to convert.';
+    } catch (err) {
+      status.textContent = 'Error reading Excel: ' + err.message;
+    }
+  };
+  reader.readAsBinaryString(file);
+});
+
+convertBtn.addEventListener('click', () => {
+  if (!workbook) return;
+
+  status.textContent = 'Parsing schedule...';
+
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false });
+
+  const events = [];
+  let pilotName = 'Pilot';
+
+  // Find pilot row (look for row with comma in name)
+  let pilotRowIndex = -1;
+  json.forEach((row, i) => {
+    if (row.some(cell => typeof cell === 'string' && cell.includes(','))) {
+      pilotRowIndex = i;
+      pilotName = row.find(cell => cell && cell.includes(',')) || pilotName;
+      pilotName = pilotName.split(/ - |\n/)[0].trim();
+    }
+  });
+
+  if (pilotRowIndex === -1) {
+    status.textContent = 'Could not find pilot row.';
+    return;
+  }
+
+  // Find date header row (look for '02 Mar' etc.)
+  let dateRow = null;
+  json.forEach(row => {
+    if (row.some(cell => cell && /^\d{1,2} Mar$/.test(cell))) {
+      dateRow = row;
+    }
+  });
+
+  if (!dateRow) {
+    status.textContent = 'Could not find date header.';
+    return;
+  }
+
+  // Map date to column index
+  const dateToCol = {};
+  dateRow.forEach((cell, col) => {
+    if (cell && /^\d{1,2} Mar$/.test(cell)) {
+      dateToCol[cell] = col;
+    }
+  });
+
+  // Extract events from pilot row
+  const pilotRow = json[pilotRowIndex];
+  Object.entries(dateToCol).forEach(([dateStr, col]) => {
+    const day = dateStr.match(/(\d+)/)[1].padStart(2, '0');
+    const ymd = `202603${day}`;
+
+    let cell = pilotRow[col];
+    if (!cell || typeof cell !== 'string' || cell.trim() === '') return;
+    cell = cell.trim().replace(/\s{2,}/g, ' ');
+
+    const timeMatch = cell.match(/\b(\d{4})\b/);
+    let start, end, allDay = !timeMatch;
+
+    if (timeMatch) {
+      const t = timeMatch[1];
+      const hh = t.slice(0,2);
+      const mm = t.slice(2);
+      start = `${ymd}T${hh}${mm}00`;
+      let eh = (parseInt(hh) + 6) % 24;
+      let ed = parseInt(day);
+      if (parseInt(hh) + 6 >= 24) ed++;
+      end = `202603${ed.toString().padStart(2,'0')}T${eh.toString().padStart(2,'0')}${mm}00`;
+    } else {
+      start = `VALUE=DATE:${ymd}`;
+      end = `VALUE=DATE:202603${(parseInt(day)+1).toString().padStart(2,'0')}`;
+    }
+
+    let summary = cell.split(/DFW|#\d/)[0].trim().replace(/B787\s*/gi, '').trim();
+    if (timeMatch) summary += ` @ ${timeMatch[1]}`;
+    summary = summary || cell.substring(0, 30);
+
+    events.push({ summary, start, end, allDay });
+  });
+
+  if (events.length === 0) {
+    status.textContent = 'No events found in the pilot row.';
+    return;
+  }
+
+  status.textContent = `Found ${events.length} events for ${pilotName}. Downloading...`;
+
+  let ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Grok//MARFFLE Excel//EN
+X-WR-CALNAME:${pilotName} - March 2026
+X-WR-TIMEZONE:America/Chicago
+`;
+
+  events.forEach(ev => {
+    const uid = Date.now() + Math.random().toString(36).slice(2);
+    ics += `BEGIN:VEVENT
+UID:${uid}@marffle
+DTSTAMP:${new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14)}Z
+SUMMARY:${ev.summary.replace(/[,;]/g, c => '\\' + c)}
+${ev.allDay ? `DTSTART;${ev.start}\nDTEND;${ev.end}` : `DTSTART;TZID=America/Chicago:${ev.start}\nDTEND;TZID=America/Chicago:${ev.end}`}
+END:VEVENT
+`;
+  });
+
+  ics += 'END:VCALENDAR';
+
+  const blob = new Blob([ics], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${pilotName.replace(/[^a-zA-Z]/g, '_')}_March_2026.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
