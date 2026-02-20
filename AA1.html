@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MARFFLE Report → .ics Calendar Download</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; line-height: 1.5; }
+    h1 { text-align: center; color: #1a3c6d; }
+    .container { background: #f9f9f9; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input[type="file"], select, button { padding: 10px 16px; font-size: 16px; margin: 12px 8px 12px 0; }
+    button { background: #1a3c6d; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #2c55a0; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    #status { color: #444; font-style: italic; margin: 15px 0; min-height: 1.2em; }
+    #fileInfo { font-size: 0.95em; color: #555; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>787 IP March Bid Period – .ics Calendar Generator</h1>
+
+  <p>Upload your MARFFLE report HTML file (the one with the colored schedule table):</p>
+
+  <input type="file" id="htmlFileInput" accept=".html,.htm" />
+
+  <p id="fileInfo"></p>
+
+  <select id="pilotSelect" disabled>
+    <option value="">-- Select Pilot --</option>
+  </select>
+
+  <button id="downloadBtn" disabled>Download .ics</button>
+
+  <div id="status"></div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────
+const fileInput   = document.getElementById('htmlFileInput');
+const select      = document.getElementById('pilotSelect');
+const downloadBtn = document.getElementById('downloadBtn');
+const statusEl    = document.getElementById('status');
+const fileInfoEl  = document.getElementById('fileInfo');
+
+let doc = null;           // parsed DOM
+let pilots = [];          // array of {name, row}
+let dateColumns = [];     // {index, label, colspan}
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  fileInfoEl.textContent = `Loading: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+
+  try {
+    const text = await file.text();
+    const parser = new DOMParser();
+    doc = parser.parseFromString(text, "text/html");
+
+    parseStructure();
+    extractPilots();
+
+    statusEl.textContent = pilots.length > 0 
+      ? `${pilots.length} pilots detected. Select one to download.` 
+      : 'No pilots found — the file may not match the expected format.';
+
+    downloadBtn.disabled = pilots.length === 0;
+  } catch (err) {
+    statusEl.textContent = 'Error reading file: ' + err.message;
+    console.error(err);
+  }
+});
+
+function parseStructure() {
+  dateColumns = [];
+  let nameColStart = -1;
+
+  const rows = Array.from(doc.querySelectorAll('tr'));
+  for (const row of rows) {
+    const cells = Array.from(row.querySelectorAll('td, th'));
+    if (cells.some(c => c.textContent.trim() === 'Trainee')) {
+      let colIdx = 0;
+      for (const cell of cells) {
+        const text = cell.textContent.trim();
+        const colspan = parseInt(cell.getAttribute('colspan') || '1', 10);
+
+        if (text === 'Trainee') {
+          nameColStart = colIdx;
+        }
+        if (/^\d{1,2} Mar$/.test(text) || ['FLYW','WDay','CW','Total'].some(s => text.includes(s))) {
+          dateColumns.push({ index: colIdx, label: text, colspan });
+        }
+        colIdx += colspan;
+      }
+      break; // usually only one such header row
+    }
+  }
+}
+
+function extractPilots() {
+  pilots = [];
+  if (!doc) return;
+
+  const rows = Array.from(doc.querySelectorAll('tr'));
+  for (const row of rows) {
+    const cells = Array.from(row.querySelectorAll('td'));
+    if (cells.length < 8) continue;
+
+    // Look for cell with name pattern: "Last, First<br>ID - XXXX<br>phone"
+    let nameCell = null;
+    for (const cell of cells) {
+      const html = cell.innerHTML;
+      if (html.includes(',') && html.includes('<br')) {
+        const lines = html.split('<br>').map(s => s.trim().replace(/<[^>]+>/g,''));
+        const possibleName = lines.find(l => l.includes(',') && !/^\d/.test(l));
+        if (possibleName && possibleName.length > 5) {
+          nameCell = cell;
+          break;
+        }
+      }
+    }
+
+    if (nameCell) {
+      const cleanName = nameCell.textContent.split('\n')[0].trim()
+        .replace(/\s{2,}/g, ' ')
+        .replace(/ - \d+/, ''); // remove trailing ID if needed
+
+      if (cleanName.includes(',')) {
+        pilots.push({ name: cleanName, row });
+      }
+    }
+  }
+
+  // Populate dropdown
+  select.innerHTML = '<option value="">-- Select Pilot --</option>';
+  pilots.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+
+  select.disabled = pilots.length === 0;
+}
+
+select.addEventListener('change', () => {
+  downloadBtn.disabled = !select.value;
+  statusEl.textContent = select.value ? '' : 'Select a pilot to enable download.';
+});
+
+downloadBtn.addEventListener('click', () => {
+  const name = select.value;
+  if (!name) return;
+
+  const pilot = pilots.find(p => p.name === name);
+  if (!pilot) return;
+
+  const events = extractEventsForRow(pilot.row);
+
+  if (events.length === 0) {
+    statusEl.textContent = 'No events found for this pilot.';
+    return;
+  }
+
+  const ics = generateICS(name, events);
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name.replace(/[^a-zA-Z0-9]/g,'_')}_March_2026.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  statusEl.textContent = `Downloaded ${events.length} events for ${name}`;
+});
+
+function extractEventsForRow(row) {
+  const events = [];
+  const cells = Array.from(row.querySelectorAll('td'));
+
+  dateColumns.forEach(col => {
+    if (!/^\d{1,2} Mar$/.test(col.label)) return;
+
+    const dayMatch = col.label.match(/^(\d{1,2}) Mar$/);
+    if (!dayMatch) return;
+    const day = dayMatch[1].padStart(2, '0');
+    const ymd = `202603${day}`;
+
+    // Estimate cell index — this is approximate; adjust offset if needed
+    // (name cell usually around index 2–4, dates start after spacers)
+    const cellIdx = col.index + 2; // common offset in your table structure
+    const cell = cells[cellIdx] || cells[col.index] || null;
+    if (!cell) return;
+
+    let text = cell.textContent.trim().replace(/\s{2,}/g, ' ');
+    if (!text || text === 'RDAY' && text.length < 3) return; // skip empty
+
+    const timeMatch = text.match(/\b(\d{4})\b/);
+    let start, end, isAllDay = !timeMatch;
+
+    if (timeMatch) {
+      const t = timeMatch[1];
+      const hh = t.slice(0,2);
+      const mm = t.slice(2);
+      start = `${ymd}T${hh}${mm}00`;
+
+      let endH = (parseInt(hh,10) + 6) % 24;
+      let endD = parseInt(day,10);
+      if (parseInt(hh,10) + 6 >= 24) endD++;
+      const endDay = endD.toString().padStart(2,'0');
+      end = `202603${endDay}T${endH.toString().padStart(2,'0')}${mm}00`;
+    } else {
+      start = `VALUE=DATE:${ymd}`;
+      const nextDay = (parseInt(day,10) + 1).toString().padStart(2,'0');
+      end   = `VALUE=DATE:202603${nextDay}`;
+    }
+
+    // Summary cleanup
+    let summary = text.split(/[\n<]/)[0].trim();
+    if (summary.includes('B787')) {
+      summary = summary.replace(/B787 Sim Day (\d+)/i, 'Sim Day $1');
+      if (timeMatch) summary += ` @ ${timeMatch[1]}`;
+    }
+    summary = (summary || col.label).replace(/\s+/g, ' ').trim();
+
+    events.push({ summary, start, end, isAllDay });
+  });
+
+  return events;
+}
+
+function generateICS(pilotName, events) {
+  let ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Grok//MARFFLE 787 IP March 2026//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:${pilotName} - March 2026
+X-WR-TIMEZONE:America/Chicago
+`;
+
+  events.forEach(ev => {
+    const uid = Date.now() + Math.random().toString(36).slice(2,10) + '@marffle';
+    ics += `BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14)}Z
+SUMMARY:${ev.summary.replace(/,/g, '\\,').replace(/;/g, '\\;')}
+${ev.isAllDay 
+  ? `DTSTART;${ev.start}\nDTEND;${ev.end}`
+  : `DTSTART;TZID=America/Chicago:${ev.start}\nDTEND;TZID=America/Chicago:${ev.end}`}
+END:VEVENT
+`;
+  });
+
+  ics += 'END:VCALENDAR\n';
+  return ics;
+}
+</script>
+
+</body>
+</html>
