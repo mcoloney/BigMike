@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Debug: My MARFFLE → .ics</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
+    h1 { text-align: center; }
+    .container { background: #f9f9f9; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    input, button { padding: 10px 16px; font-size: 16px; margin: 12px 8px 12px 0; }
+    button { background: #0066cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #status { white-space: pre-wrap; font-family: monospace; background: #eee; padding: 12px; border-radius: 6px; min-height: 120px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Debug Version – MARFFLE Personal Schedule to .ics</h1>
+  <p>Upload your personal HTML file → press button → look at status + browser console (F12)</p>
+
+  <input type="file" id="file" accept=".html" />
+  <button id="go" disabled>Convert & Download .ics (debug)</button>
+
+  <div id="status">Waiting for upload...</div>
+</div>
+
+<script>
+const fileEl = document.getElementById('file');
+const btn = document.getElementById('go');
+const status = document.getElementById('status');
+
+let doc = null;
+let name = 'Unknown';
+
+fileEl.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  status.textContent = `Reading ${file.name}...`;
+
+  try {
+    const txt = await file.text();
+    const parser = new DOMParser();
+    doc = parser.parseFromString(txt, 'text/html');
+
+    // Name guess
+    const nameSpan = [...doc.querySelectorAll('span')].find(s => s.textContent.includes(',') && s.textContent.length > 10);
+    if (nameSpan) name = nameSpan.textContent.trim().split(/\n| - /)[0].trim();
+
+    status.textContent = `Loaded. Detected name: ${name}\n\nClick button to parse events.`;
+    btn.disabled = false;
+  } catch (err) {
+    status.textContent = `Error reading file:\n${err.message}`;
+  }
+});
+
+btn.addEventListener('click', () => {
+  if (!doc) return;
+
+  status.textContent = `Parsing events...\nName: ${name}\n`;
+
+  const {events, debugInfo} = extractEventsDebug(doc);
+
+  status.textContent += debugInfo;
+
+  if (events.length === 0) {
+    status.textContent += '\nNo events extracted. Check console (F12) for raw cell texts.';
+    return;
+  }
+
+  const ics = generateICS(name, events);
+
+  const blob = new Blob([ics], {type: 'text/calendar'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name.replace(/[^a-z]/gi,'_')}_mar2026.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  status.textContent += `\nSuccess: ${events.length} events written to .ics file.\nDownloaded.`;
+});
+
+function extractEventsDebug(doc) {
+  const events = [];
+  let debug = 'Debug info:\n';
+
+  // 1. Find date header row
+  let headerRow = null;
+  doc.querySelectorAll('tr').forEach(r => {
+    if (r.textContent.includes('02 Mar') && r.textContent.includes('Trainee')) headerRow = r;
+  });
+  if (!headerRow) {
+    debug += 'No header row with dates found.\n';
+    return {events, debugInfo: debug};
+  }
+
+  // 2. Map dates → starting column index
+  const dateToCol = [];
+  let currentCol = 0;
+  headerRow.querySelectorAll('td').forEach(td => {
+    const txt = td.textContent.trim();
+    const colspan = Number(td.getAttribute('colspan') || 1);
+    if (/^\d{1,2} Mar$/.test(txt)) {
+      dateToCol.push({date: txt, col: currentCol});
+      debug += `${txt} → col ${currentCol} (span ${colspan})\n`;
+    }
+    currentCol += colspan;
+  });
+
+  debug += `Found ${dateToCol.length} date columns.\n`;
+
+  // 3. Find the main schedule row (look for row with many nested div/table/span)
+  let scheduleRow = null;
+  doc.querySelectorAll('tr').forEach(r => {
+    if (r.innerHTML.includes('Calibri') && r.innerHTML.includes('DAY') || r.innerHTML.includes('B787') || r.innerHTML.includes('MOE')) {
+      scheduleRow = r;
+    }
+  });
+
+  if (!scheduleRow) {
+    debug += 'No schedule row found (no Calibri spans with DAY/B787).\n';
+    return {events, debugInfo: debug};
+  }
+
+  debug += 'Found schedule row.\n';
+
+  // 4. Get top-level cells in that row
+  const topCells = scheduleRow.querySelectorAll(':scope > td');
+  debug += `Row has ${topCells.length} top-level <td> cells.\n`;
+
+  // 5. Try to extract from each date's approximate position
+  dateToCol.forEach(({date, col}) => {
+    const dayMatch = date.match(/(\d+)/);
+    if (!dayMatch) return;
+    const dd = dayMatch[1].padStart(2,'0');
+    const ymd = `202603${dd}`;
+
+    // Offset: skip name + spacer cells (usually 3-6)
+    const cellIdx = col + 3; // start with +3, common in your structure
+    const cell = topCells[cellIdx];
+    if (!cell) {
+      debug += `${date}: no cell at idx ${cellIdx}\n`;
+      return;
+    }
+
+    // Get deepest text
+    const deepest = cell.querySelector('span[style*="Calibri"]') || cell.querySelector('span') || cell;
+    let rawText = deepest.textContent.trim().replace(/\s+/g, ' ');
+    debug += `${date} (idx ${cellIdx}): "${rawText}"\n`;
+
+    if (!rawText || rawText.length < 3 || /^\d+$/.test(rawText)) return;
+
+    const timeMatch = rawText.match(/\b(\d{4})\b/);
+    let start, end, allDay = !timeMatch;
+
+    if (timeMatch) {
+      const t = timeMatch[1];
+      const hh = t.slice(0,2);
+      const mm = t.slice(2);
+      start = `${ymd}T${hh}${mm}00`;
+      let eh = (Number(hh) + 6) % 24;
+      let ed = Number(dd);
+      if (Number(hh) + 6 >= 24) ed++;
+      end = `202603${ed.toString().padStart(2,'0')}T${eh.toString().padStart(2,'0')}${mm}00`;
+    } else {
+      start = `VALUE=DATE:${ymd}`;
+      end   = `VALUE=DATE:202603${(Number(dd)+1).toString().padStart(2,'0')}`;
+    }
+
+    let summary = rawText.split('DFW')[0].trim().replace(/B787\s*/gi,'').trim();
+    if (timeMatch) summary += ` @ ${timeMatch[1]}`;
+    summary = summary || rawText.slice(0,30);
+
+    events.push({summary, start, end, allDay});
+  });
+
+  return {events, debugInfo: debug};
+}
+
+function generateICS(name, events) {
+  let ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Grok Debug//MARFFLE//EN
+X-WR-CALNAME:${name} March 2026
+X-WR-TIMEZONE:America/Chicago
+`;
+
+  events.forEach(e => {
+    const uid = Date.now() + Math.random().toString(36).slice(2);
+    ics += `BEGIN:VEVENT
+UID:${uid}@debug
+SUMMARY:${e.summary.replace(/[,;]/g, c => '\\' + c)}
+${e.allDay ? `DTSTART;${e.start}\nDTEND;${e.end}` : `DTSTART;TZID=America/Chicago:${e.start}\nDTEND;TZID=America/Chicago:${e.end}`}
+END:VEVENT
+`;
+  });
+
+  ics += 'END:VCALENDAR';
+  return ics;
+}
+</script>
+</body>
+</html>
