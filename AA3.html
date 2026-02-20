@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My MARFFLE Schedule → .ics</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.5; }
+    h1 { text-align: center; color: #1a3c6d; }
+    .container { background: #f9f9f9; padding: 30px; border-radius: 10px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); text-align: center; }
+    input[type="file"] { margin: 20px 0; font-size: 16px; }
+    button { padding: 12px 28px; font-size: 17px; background: #1a3c6d; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #2c55a0; }
+    button:disabled { background: #aaa; cursor: not-allowed; }
+    #status { margin: 20px 0; font-size: 15px; color: #333; min-height: 1.3em; }
+    #pilotName { font-weight: bold; color: #1a3c6d; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>My March 2026 Schedule → iCalendar (.ics)</h1>
+
+  <p>Upload your personal MARFFLE report HTML file:</p>
+
+  <input type="file" id="htmlFile" accept=".html,.htm" />
+
+  <div id="status">Waiting for file…</div>
+
+  <button id="convertBtn" disabled>Convert & Download .ics</button>
+</div>
+
+<script>
+const fileInput = document.getElementById('htmlFile');
+const convertBtn = document.getElementById('convertBtn');
+const status = document.getElementById('status');
+
+let parsedDoc = null;
+let pilotName = 'Pilot';
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  status.textContent = `Reading ${file.name}…`;
+
+  try {
+    const text = await file.text();
+    const parser = new DOMParser();
+    parsedDoc = parser.parseFromString(text, 'text/html');
+
+    // Detect name: look for span with comma in left area
+    const possibleNames = Array.from(parsedDoc.querySelectorAll('span'))
+      .filter(s => s.textContent.includes(',') && s.textContent.length > 8 && !s.textContent.includes('Mar'));
+    if (possibleNames.length > 0) {
+      pilotName = possibleNames[0].textContent.trim().split('\n')[0].trim();
+      status.innerHTML = `Detected: <span id="pilotName">${pilotName}</span><br>Ready.`;
+    } else {
+      status.textContent = 'Name not auto-detected, but conversion should still work.';
+    }
+
+    convertBtn.disabled = false;
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+  }
+});
+
+convertBtn.addEventListener('click', () => {
+  if (!parsedDoc) return status.textContent = 'No file loaded.';
+
+  const events = extractEvents(parsedDoc);
+
+  if (events.length === 0) {
+    status.textContent = 'No events found — check if this is a personal schedule HTML.';
+    return;
+  }
+
+  const ics = generateICS(pilotName, events);
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${pilotName.replace(/[^a-zA-Z0-9]/g, '_')}_March_2026.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  status.textContent = `Downloaded ${events.length} events. Import to Calendar app.`;
+});
+
+function extractEvents(doc) {
+  const events = [];
+
+  // Find header row with dates
+  let headerRow = null;
+  doc.querySelectorAll('tr').forEach(tr => {
+    if (tr.textContent.includes('02 Mar') || tr.textContent.includes('Mar') && tr.textContent.includes('Trainee')) {
+      headerRow = tr;
+    }
+  });
+  if (!headerRow) return events;
+
+  // Build date to cumulative column index map
+  const dateMap = [];
+  let col = 0;
+  headerRow.querySelectorAll('td, th').forEach(td => {
+    const txt = td.textContent.trim();
+    const span = parseInt(td.getAttribute('colspan') || '1');
+    if (/^\d{1,2} Mar$/.test(txt)) {
+      dateMap.push({date: txt, colStart: col});
+    }
+    col += span;
+  });
+
+  // Find the tall event row (height 200/201)
+  let eventRow = null;
+  doc.querySelectorAll('tr').forEach(tr => {
+    if (tr.getAttribute('style')?.includes('height:20') || tr.getAttribute('style')?.includes('height:201')) {
+      if (tr.querySelector('span')?.textContent.includes('B787') || tr.querySelector('span')?.textContent.includes('DAY')) {
+        eventRow = tr;
+      }
+    }
+  });
+  if (!eventRow) return events;
+
+  // Get all top-level td in event row
+  const cells = Array.from(eventRow.querySelectorAll(':scope > td'));
+
+  dateMap.forEach(({date, colStart}) => {
+    const dayMatch = date.match(/^(\d{1,2}) Mar$/);
+    if (!dayMatch) return;
+    const day = dayMatch[1].padStart(2, '0');
+    const ymd = `202603${day}`;
+
+    // Try to get cell at approx position (skip initial name/spacer cols ~4-6)
+    const cellIndex = colStart + 4; // adjust: your table has ~4-5 cols before first date
+    const cell = cells[cellIndex] || cells[colStart] || null;
+    if (!cell) return;
+
+    // Get innermost text (span inside nested tables/divs)
+    const innerSpan = cell.querySelector('span[style*="Calibri"]') || cell.querySelector('span');
+    let text = innerSpan ? innerSpan.textContent.trim() : cell.textContent.trim();
+    text = text.replace(/\s{2,}/g, ' ').replace(/\n+/g, ' ').trim();
+    if (!text || text === '' || /^\d+$/.test(text)) return; // skip empty or total numbers
+
+    const timeMatch = text.match(/\b(\d{4})\b/);
+    let start, end, isAllDay = !timeMatch;
+
+    if (timeMatch) {
+      const t = timeMatch[1];
+      const hh = t.slice(0,2);
+      const mm = t.slice(2,4);
+      start = `${ymd}T${hh}${mm}00`;
+      let eh = (parseInt(hh, 10) + 6) % 24;
+      let ed = parseInt(day, 10);
+      if (parseInt(hh, 10) + 6 >= 24) ed++;
+      end = `202603${ed.toString().padStart(2,'0')}T${eh.toString().padStart(2,'0')}${mm}00`;
+    } else {
+      start = `VALUE=DATE:${ymd}`;
+      end = `VALUE=DATE:202603${(parseInt(day,10)+1).toString().padStart(2,'0')}`;
+    }
+
+    let summary = text.split(/DFW|#\d/)[0].trim(); // take main part before location
+    if (timeMatch) summary += ` @ ${timeMatch[1]}`;
+    summary = summary.replace(/B787\s*/gi, '').trim() || text.substring(0,30);
+
+    events.push({summary, start, end, isAllDay});
+  });
+
+  return events;
+}
+
+function generateICS(name, events) {
+  let ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Grok//MARFFLE Personal//EN
+X-WR-CALNAME:${name} - March 2026
+X-WR-TIMEZONE:America/Chicago
+`;
+
+  events.forEach(ev => {
+    const uid = crypto.randomUUID ? crypto.randomUUID() : Date.now() + Math.random();
+    ics += `BEGIN:VEVENT
+UID:${uid}@marffle
+DTSTAMP:${new Date().toISOString().replace(/[-:T.]/g,'').slice(0,14)}Z
+SUMMARY:${ev.summary.replace(/,/g,'\\,').replace(/;/g,'\\;')}
+${ev.isAllDay ? `DTSTART;${ev.start}\nDTEND;${ev.end}` : `DTSTART;TZID=America/Chicago:${ev.start}\nDTEND;TZID=America/Chicago:${ev.end}`}
+END:VEVENT
+`;
+  });
+
+  ics += 'END:VCALENDAR';
+  return ics;
+}
+</script>
+</body>
+</html>
