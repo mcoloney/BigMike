@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paulsen Painting | Artful Interior & Exterior Painting</title>
+  <meta name="description" content="Paulsen Painting by Dan Paulsen — 25+ years of interior and exterior painting with an artistic, modern touch." />
+  <style>
+    :root {
+      --bg: #f5efe8;
+      --bg-alt: #efe6dc;
+      --text: #1f1a17;
+      --muted: #655a52;
+      --card: rgba(255,255,255,0.68);
+      --card-border: rgba(71, 45, 28, 0.10);
+      --accent: #b85c38;
+      --accent-2: #4c6a5a;
+      --shadow: 0 20px 60px rgba(62, 40, 24, 0.12);
+      --switch-track: #d8c6b7;
+      --switch-thumb: #ffffff;
+    }
+
+    [data-theme="dark"] {
+      --bg: #171311;
+      --bg-alt: #211b18;
+      --text: #f3ece6;
+      --muted: #c6b8ad;
+      --card: rgba(34, 27, 23, 0.72);
+      --card-border: rgba(255,255,255,0.08);
+      --accent: #e18a63;
+      --accent-2: #7fa18d;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+      --switch-track: #4a403a;
+      --switch-thumb: #f9f2ec;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(184,92,56,0.13), transparent 30%),
+        radial-gradient(circle at top right, rgba(76,106,90,0.12), transparent 25%),
+        linear-gradient(180deg, var(--bg), var(--bg-alt));
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(14px);
+      background: color-mix(in srgb, var(--bg) 72%, transparent);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: var(--shadow);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .pill-switch {
+      width: 56px;
+      height: 32px;
+      border: 0;
+      border-radius: 999px;
+      padding: 4px;
+      background: var(--switch-track);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      transition: background 0.25s ease;
+      flex: 0 0 auto;
+    }
+    .pill-switch-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--switch-thumb);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      transform: translateX(0);
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+    [data-theme="dark"] .pill-switch {
+      justify-content: flex-end;
+    }
+
+    .hero {
+      padding: 84px 0 36px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--card) 88%, transparent);
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: clamp(3rem, 7vw, 5.8rem);
+      line-height: 0.94;
+      margin: 0 0 18px;
+      letter-spacing: -0.05em;
+    }
+    .lead {
+      font-size: 1.1rem;
+      line-height: 1.75;
+      max-width: 58ch;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 20px;
+      border-radius: 999px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: var(--shadow);
+    }
+    .btn.secondary {
+      background: var(--card);
+      border-color: var(--card-border);
+      color: var(--text);
+    }
+
+    .hero-card {
+      position: relative;
+      min-height: 520px;
+      border-radius: 32px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.04)),
+        url('https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80') center/cover;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--card-border);
+    }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.34));
+    }
+    .hero-card-badge {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      z-index: 1;
+      background: rgba(0,0,0,0.45);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 14px 16px;
+      border-radius: 18px;
+      max-width: 240px;
+      backdrop-filter: blur(10px);
+    }
+
+    section {
+      padding: 56px 0;
+    }
+    .section-title {
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+      margin: 0 0 10px;
+    }
+    .section-copy {
+      color: var(--muted);
+      max-width: 64ch;
+      line-height: 1.7;
+      margin: 0 0 24px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .service {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .dot {
+      width: 14px;
+      height: 14px;
+      margin-top: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent);
+      flex: 0 0 auto;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .gallery figure {
+      margin: 0;
+      overflow: hidden;
+      border-radius: 22px;
+      min-height: 260px;
+      position: relative;
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+    }
+    .gallery img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+    .gallery figure:hover img { transform: scale(1.03); }
+
+    .reviews-shell {
+      overflow: hidden;
+      border-radius: 28px;
+    }
+    .reviews-track {
+      display: flex;
+      gap: 18px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      padding-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .reviews-track::-webkit-scrollbar { height: 10px; }
+    .reviews-track::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, var(--muted) 35%, transparent);
+      border-radius: 999px;
+    }
+    .review {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+    }
+    .quote {
+      font-size: 1.08rem;
+      line-height: 1.8;
+      color: var(--text);
+      margin: 0 0 16px;
+    }
+    .reviewer {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .contact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+    form {
+      display: grid;
+      gap: 14px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      background: color-mix(in srgb, var(--card) 90%, transparent);
+      color: var(--text);
+      font: inherit;
+    }
+    textarea { min-height: 150px; resize: vertical; }
+
+    footer {
+      padding: 28px 0 42px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid, .grid-2, .gallery, .contact {
+        grid-template-columns: 1fr;
+      }
+      .hero-card { min-height: 420px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          <div>Paulsen Painting</div>
+          <div style="font-size:0.85rem;color:var(--muted);font-weight:500;">Interior & Exterior Painting</div>
+        </div>
+      </div>
+
+      <div class="nav-links">
+        <a href="#services">Services</a>
+        <a href="#work">Work</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#contact">Contact</a>
+      </div>
+
+      <button class="pill-switch" id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark mode">
+        <span class="pill-switch-thumb" id="themeThumb"></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">25+ years of craftsmanship • Dan Paulsen</div>
+          <h1>Painting that feels as polished as it looks.</h1>
+          <p class="lead">
+            Paulsen Painting brings a clean, modern, artistic touch to interior and exterior projects.
+            From careful prep to the final brushstroke, every job is handled with pride, precision, and experience.
+          </p>
+          <div class="actions">
+            <a class="btn primary" href="#contact">Request a Quote</a>
+            <a class="btn secondary" href="#work">See Selected Work</a>
+          </div>
+        </div>
+
+        <div class="hero-card" aria-hidden="true">
+          <div class="hero-card-badge">
+            <strong>Reliable. Detailed. Artistic.</strong>
+            <div style="margin-top:6px;color:rgba(255,255,255,0.85);font-size:0.95rem;">
+              Interior walls, trim, exteriors, and full home refreshes.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="services">
+      <div class="wrap">
+        <h2 class="section-title">The Craft</h2>
+        <p class="section-copy">
+          The goal is simple: make your home look finished, fresh, and intentional.
+        </p>
+        <div class="grid-2">
+          <div class="card service">
+            <div class="dot"></div>
+            <div>
+              <h3>Interior Painting</h3>
+              <p class="section-copy">Walls, ceilings, trim, doors, accent walls, and clean color transitions that elevate the whole room.</p>
+            </div>
+          </div>
+          <div class="card service">
+            <div class="dot"></div>
+            <div>
+              <h3>Exterior Painting</h3>
+              <p class="section-copy">Durable, weather-conscious exterior work that improves curb appeal and protects your home.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="work">
+      <div class="wrap">
+        <h2 class="section-title">Selected Work</h2>
+        <p class="section-copy">
+          A few visual examples of the kind of clean, bright, professional finish Paulsen Painting aims for.
+        </p>
+        <div class="gallery">
+          <figure>
+            <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80" alt="Modern painted interior living space">
+          </figure>
+          <figure>
+            <img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=900&q=80" alt="Freshly painted home exterior">
+          </figure>
+          <figure>
+            <img src="https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=900&q=80" alt="Bright interior room with clean painted walls">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="reviews">
+      <div class="wrap">
+        <h2 class="section-title">Client Notes</h2>
+        <p class="section-copy">These reviews are sample copy for now and can be replaced with real customer feedback later.</p>
+
+        <div class="reviews-shell card">
+          <div class="reviews-track" id="reviewsTrack">
+            <article class="review">
+              <p class="quote">“Dan was incredibly careful, on time, and the finished rooms looked better than we expected. He made the whole process easy.”</p>
+              <div class="reviewer">— Sarah M.</div>
+            </article>
+            <article class="review">
+              <p class="quote">“The exterior repaint gave our house a completely new feel. The prep work and detail were excellent.”</p>
+              <div class="reviewer">— James R.</div>
+            </article>
+            <article class="review">
+              <p class="quote">“Professional, tidy, and very easy to work with. You can tell he’s been doing this for a long time.”</p>
+              <div class="reviewer">— Melissa T.</div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="wrap">
+        <h2 class="section-title">Contact</h2>
+        <p class="section-copy">Reach out for a quote, project questions, or scheduling availability.</p>
+        <div class="contact">
+          <div class="card">
+            <h3>Get in touch</h3>
+            <p class="section-copy">Phone: <a href="tel:+19185551234">(918) 555-1234</a><br>Email: <a href="mailto:dan@paulsenpainting.com">dan@paulsenpainting.com</a></p>
+            <p class="section-copy">Serving Tulsa and surrounding areas.</p>
+          </div>
+
+          <div class="card">
+            <form action="mailto:dan@paulsenpainting.com" method="post" enctype="text/plain">
+              <input type="text" name="name" placeholder="Your name" />
+              <input type="email" name="email" placeholder="Your email" />
+              <textarea name="message" placeholder="Tell us about your project"></textarea>
+              <button class="btn primary" type="submit">Send Message</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      © 2026 Paulsen Painting. All rights reserved.
+    </div>
+  </footer>
+
+  <script>
+    const root = document.documentElement;
+    const toggle = document.getElementById('themeToggle');
+    const track = document.getElementById('reviewsTrack');
+
+    function applyTheme(theme) {
+      root.setAttribute('data-theme', theme);
+      toggle.setAttribute('aria-checked', theme === 'dark' ? 'true' : 'false');
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(savedTheme || (systemDark ? 'dark' : 'light'));
+
+    toggle.addEventListener('click', () => {
+      const current = root.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem('theme', next);
+    });
+
+    let index = 0;
+    const slides = track ? Array.from(track.children) : [];
+    let timer;
+
+    function scrollToSlide(i) {
+      if (!slides.length) return;
+      index = (i + slides.length) % slides.length;
+      slides[index].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    }
+
+    function startAutoScroll() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      stopAutoScroll();
+      timer = setInterval(() => scrollToSlide(index + 1), 4000);
+    }
+
+    function stopAutoScroll() {
+      if (timer) clearInterval(timer);
+    }
+
+    track?.addEventListener('mouseenter', stopAutoScroll);
+    track?.addEventListener('mouseleave', startAutoScroll);
+    track?.addEventListener('focusin', stopAutoScroll);
+    track?.addEventListener('focusout', startAutoScroll);
+
+    startAutoScroll();
+  </script>
+</body>
+</html>
