@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paulsen Painting | Interior & Exterior Painting</title>
+  <meta name="description" content="Paulsen Painting offers expert interior and exterior painting by Dan Paulsen, with over 25 years of experience." />
+  <style>
+    :root {
+      --bg: #f8f5f1;
+      --card: #ffffff;
+      --text: #2b2623;
+      --muted: #6c625b;
+      --accent: #c65a3a;
+      --accent-dark: #a8472a;
+      --line: #e7ddd4;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+      --radius: 22px;
+      --max: 1120px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+    a { color: inherit; text-decoration: none; }
+    img {
+      max-width: 100%;
+      display: block;
+      border-radius: 18px;
+    }
+
+    .wrap {
+      width: min(100% - 32px, var(--max));
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(248,245,241,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(231,221,212,.8);
+    }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      gap: 16px;
+    }
+    .brand {
+      font-weight: 800;
+      letter-spacing: .2px;
+      font-size: 1.1rem;
+    }
+    .brand span { color: var(--accent); }
+    .navlinks {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: .96rem;
+    }
+    .navlinks a:hover { color: var(--accent-dark); }
+
+    .hero {
+      padding: 54px 0 28px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 28px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-block;
+      background: #f3e3db;
+      color: var(--accent-dark);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: .88rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: clamp(2.3rem, 5vw, 4.3rem);
+      line-height: 1.03;
+      margin: 0 0 16px;
+      letter-spacing: -.04em;
+    }
+    .lead {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 58ch;
+      margin: 0 0 26px;
+    }
+    .cta-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 700;
+    }
+    .btn.primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn.primary:hover { background: var(--accent-dark); }
+    .btn.secondary {
+      border-color: var(--line);
+      background: #fff;
+    }
+    .btn.secondary:hover { border-color: #cdbfb2; }
+
+    .hero-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .hero-card .content {
+      padding: 18px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .stat {
+      background: #faf7f4;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat strong {
+      display: block;
+      font-size: 1.4rem;
+      color: var(--accent-dark);
+    }
+    .stat span {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    section {
+      padding: 30px 0;
+    }
+    .section-title {
+      font-size: 1.9rem;
+      margin: 0 0 12px;
+      letter-spacing: -.02em;
+    }
+    .section-copy {
+      margin: 0 0 20px;
+      color: var(--muted);
+      max-width: 70ch;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card .body {
+      padding: 18px;
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+    }
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: .95fr 1.05fr;
+      gap: 20px;
+      align-items: center;
+    }
+    .list {
+      padding: 0;
+      margin: 18px 0 0;
+      list-style: none;
+    }
+    .list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .reviews {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .quote {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .quote p {
+      margin: 0 0 12px;
+      color: var(--text);
+    }
+    .quote span {
+      color: var(--muted);
+      font-size: .95rem;
+      font-weight: 700;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .contact-box, .form-box {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    .contact-box p, .contact-box li {
+      color: var(--muted);
+    }
+    .contact-list {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0 0;
+    }
+    .contact-list li {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 14px;
+      border: 1px solid #d8cfc5;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+    textarea { min-height: 130px; resize: vertical; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-note {
+      color: var(--muted);
+      font-size: .92rem;
+      margin: 0;
+    }
+
+    footer {
+      padding: 24px 0 36px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid, .cards, .reviews, .about-grid, .contact-grid {
+        grid-template-columns: 1fr;
+      }
+      .stats { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand">Paulsen <span>Painting</span></div>
+      <nav class="navlinks">
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Trusted Painting Services</div>
+          <h1>Beautiful interior and exterior painting by Dan Paulsen.</h1>
+          <p class="lead">
+            Paulsen Painting brings over 25 years of hands-on experience to homes and small businesses.
+            From fresh interior color updates to durable exterior repaints, Dan Paulsen delivers clean,
+            careful work with lasting results.
+          </p>
+          <div class="cta-row">
+            <a class="btn primary" href="#contact">Request a Quote</a>
+            <a class="btn secondary" href="tel:+19185550100">Call Now</a>
+          </div>
+          <p class="form-note">Serving Tulsa and surrounding areas.</p>
+        </div>
+
+        <div class="hero-card">
+          <img src="https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1200&q=80" alt="Freshly painted home exterior" />
+          <div class="content">
+            <strong>Interior. Exterior. Done right.</strong>
+            <div class="stats">
+              <div class="stat"><strong>25+</strong><span>Years Experience</span></div>
+              <div class="stat"><strong>2</strong><span>Core Services</span></div>
+              <div class="stat"><strong>1</strong><span>Owner-Operated</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="services">
+      <div class="wrap">
+        <h2 class="section-title">Services</h2>
+        <p class="section-copy">
+          Whether you want one room refreshed or your whole exterior brought back to life, Paulsen Painting offers dependable, detail-focused service.
+        </p>
+        <div class="cards">
+          <article class="card">
+            <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80" alt="Interior painted living room" />
+            <div class="body">
+              <h3>Interior Painting</h3>
+              <p>Walls, ceilings, trim, doors, and touch-ups with clean lines and careful prep.</p>
+            </div>
+          </article>
+          <article class="card">
+            <img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80" alt="Exterior home painting" />
+            <div class="body">
+              <h3>Exterior Painting</h3>
+              <p>Weather-ready finishes for siding, trim, porches, and other exterior surfaces.</p>
+            </div>
+          </article>
+          <article class="card">
+            <img src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80" alt="Paint rollers and tools" />
+            <div class="body">
+              <h3>Prep and Detail</h3>
+              <p>Surface prep, patching, masking, and a clean job site from start to finish.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="wrap about-grid">
+        <div>
+          <h2 class="section-title">About Dan Paulsen</h2>
+          <p class="section-copy">
+            Dan Paulsen has been painting for more than 25 years and has built his reputation on consistency,
+            craftsmanship, and straightforward communication. He works directly with each client and treats every project like it’s his own home.
+          </p>
+          <ul class="list">
+            <li>Over 25 years of painting experience.</li>
+            <li>Interior and exterior residential painting.</li>
+            <li>Clean prep, quality materials, and reliable scheduling.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <img src="https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=1200&q=80" alt="Painter working on home exterior" />
+        </div>
+      </div>
+    </section>
+
+    <section id="reviews">
+      <div class="wrap">
+        <h2 class="section-title">Customer Reviews</h2>
+        <p class="section-copy">These sample reviews can be replaced later with real customer feedback.</p>
+        <div class="reviews">
+          <div class="quote">
+            <p>“Dan was on time, careful, and left everything spotless. Our living room looks brand new.”</p>
+            <span>— Sarah M.</span>
+          </div>
+          <div class="quote">
+            <p>“The exterior paint job completely refreshed our home. Great communication and great results.”</p>
+            <span>— Mark T.</span>
+          </div>
+          <div class="quote">
+            <p>“We appreciated the attention to detail. The trim and ceilings came out better than we expected.”</p>
+            <span>— Jennifer R.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="wrap contact-grid">
+        <div class="contact-box">
+          <h2 class="section-title">Contact Paulsen Painting</h2>
+          <p>
+            Reach out for a free estimate, project questions, or to schedule a visit.
+            You can call, email, or send a message through the form.
+          </p>
+          <ul class="contact-list">
+            <li><strong>Owner:</strong> Dan Paulsen</li>
+            <li><strong>Phone:</strong> <a href="tel:+19185550100">(918) 555-0100</a></li>
+            <li><strong>Email:</strong> <a href="mailto:paulsenpainting@example.com">paulsenpainting@example.com</a></li>
+            <li><strong>Service Area:</strong> Tulsa and nearby communities</li>
+          </ul>
+        </div>
+
+        <div class="form-box">
+          <form action="mailto:paulsenpainting@example.com" method="post" enctype="text/plain">
+            <div class="form-row">
+              <input type="text" name="name" placeholder="Your Name" required />
+              <input type="tel" name="phone" placeholder="Phone Number" />
+            </div>
+            <div class="form-row">
+              <input type="email" name="email" placeholder="Email Address" required />
+              <select name="service">
+                <option>Interior Painting</option>
+                <option>Exterior Painting</option>
+                <option>Both Interior and Exterior</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <textarea name="message" placeholder="Tell us about your project"></textarea>
+            <button class="btn primary" type="submit">Send Message</button>
+            <p class="form-note">
+              Prefer direct contact? Email <a href="mailto:paulsenpainting@example.com">paulsenpainting@example.com</a> or call <a href="tel:+19185550100">(918) 555-0100</a>.
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      © 2026 Paulsen Painting. All rights reserved.
+    </div>
+  </footer>
+</body>
+</html>
